@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 from edgetpumodel import EdgeTPUModel
 from utils import resize_and_pad, get_image_tensor, save_one_json, coco80_to_coco91_class
 
-if __name__ == "__main__":
+def detect(model, names, stream, conf_thresh=0.25, iou_thresh=0.45, classes=None, agnostic_nms=False, max_det=1000, quiet=False):
  
     parser = argparse.ArgumentParser("EdgeTPU test runner")
     parser.add_argument("--model", "-m", help="weights file", required=True)
