@@ -1,3 +1,9 @@
+'''
+From https://github.com/jveitchmichaelis/edgetpu-yolo/tree/main
+created by jveitchmichaelis
+modified by kolesniii
+'''
+
 import os
 import sys
 import argparse
