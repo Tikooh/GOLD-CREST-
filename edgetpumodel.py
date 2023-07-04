@@ -1,3 +1,8 @@
+'''
+Created by jveitchmichaelis
+Modified by Tikooh, from https://github.com/jveitchmichaelis/edgetpu-yolo/blob/main/edgetpumodel.py
+'''
+
 import time
 import os
 import sys
