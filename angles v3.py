@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 import numpy as np
 import torch
+import cv2
 
 class drone:
     def __init__(self, x, y):
@@ -9,7 +10,6 @@ class drone:
         self.y = y
 
 def linesegments(coords):
-    lines = []
     for i in range(len(coords)):
         try:
             #plot the line segments
@@ -38,29 +38,46 @@ def ang3Points(coords):
 
         print(f"Angle: {angle}")
 
+def BBmodel(model):
+    # Inference
+    im = cv2.VideoCapture("VID_20230713_151704.mp4")
+
+    currentframe = 0
+    locationList = []
+    while True:
+                    # reading from frame
+            ret,frame = im.read()
+
+            if ret:
+                results = model(frame)
+                # Results
+                results.print()  # or .show(), .save(), .crop(), .pandas(), etc.
+
+                try:
+                    
+                    for i in range(len(results)):
+                        results.xyxy[i]  # im predictions (tensor)
+                        initialCoords = results.pandas().xyxy[i]  # im predictions (pandas)
+
+                        x_centre = np.array([(initialCoords['xmin'][0] + initialCoords['xmax'][0]) / 2])
+                        y_centre = np.array([(initialCoords['ymin'][0] + initialCoords['ymax'][0]) / 2])
+
+                        locationList.append(drone(x_centre, y_centre))
+                except:
+                    print("Error")
+                currentframe += 1
+            else:
+                break
+
+    print(locationList)
+    return locationList
+
 if __name__ == "__main__":
     #model
-    model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
-    matplotlib.use('TkAgg')
-    im = ("drone1.png", "drone2.png", "drone3.jpg", "drone4.jpeg")
+    model = torch.hub.load('ultralytics/yolov5', 'custom', '/home/george/Documents/Drone angle/best.pt') 
+    matplotlib.use('TkAgg') #change backend after loading model https://github.com/ultralytics/yolov5/issues/2779
 
-    # Inference
-    results = model(im)
-    # Results
-    results.print()  # or .show(), .save(), .crop(), .pandas(), etc.
-
-    locationList = []
-
-    for i in range(len(results)):
-        results.xyxy[i]  # im predictions (tensor)
-        initialCoords = results.pandas().xyxy[i]  # im predictions (pandas)
-        print(initialCoords)
-
-        x_centre = np.array([(initialCoords['xmin'][0] + initialCoords['xmax'][0]) / 2])
-        y_centre = np.array([(initialCoords['ymin'][0] + initialCoords['ymax'][0]) / 2])
-        print(type(x_centre))
-
-        locationList.append(drone(x_centre, y_centre))
+    locationList = BBmodel(model)
 
     coords =[]
     # plt.rcParams["figure.figsize"] = [500, 500] #defines matplotlib figure size
@@ -73,7 +90,7 @@ if __name__ == "__main__":
         #zip the x and y coordinates into a tuple
         for xy in zip(i.x, i.y):
             coords.append(xy)
-            plt.annotate(f'drone {index}', xy=xy)
+            # plt.annotate(f'drone {index}', xy=xy)
 
     
     linesegments(coords)
