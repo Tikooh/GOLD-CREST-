@@ -3,6 +3,7 @@ import matplotlib
 import numpy as np
 import torch
 import cv2
+import os
 
 class drone:
     def __init__(self, x, y):
@@ -40,9 +41,13 @@ def ang3Points(coords):
 
 def draw(imagepath,coords): #imagepath is currently just the image name : will need to change this a bit if saving in another folder
     image = cv2.imread(imagepath)
-    startpoint,endpoint = (round(coords['xmin'][0]),round(coords['ymax'][0])),(round(coords['xmax'][0]),round(coords['ymin'][0]))
-    image = cv2.rectangle(image,startpoint,endpoint,(255,0,0),20)
-    cv2.imwrite(imagepath,image)
+    try:
+        startpoint,endpoint = (round(coords['xmin'][0]),round(coords['ymax'][0])),(round(coords['xmax'][0]),round(coords['ymin'][0]))
+        path = '/home/george/Documents/Drone angle/images'
+        image = cv2.rectangle(image,startpoint,endpoint,(255,0,0),20)
+        cv2.imwrite(os.path.join(path, imagepath),image)
+    except:
+        print("Error")
 
 def BBmodel(model):
     # Inference
@@ -83,7 +88,7 @@ def BBmodel(model):
 
 if __name__ == "__main__":
     #model
-    model = torch.hub.load('ultralytics/yolov5', 'custom', '/Users/Piotr/Documents/VS Code/crest/exp10-s.pt') 
+    model = torch.hub.load('ultralytics/yolov5', 'custom', '/home/george/Documents/Drone angle/best.pt') 
     matplotlib.use('TkAgg') #change backend after loading model https://github.com/ultralytics/yolov5/issues/2779
 
     locationList = BBmodel(model)
@@ -99,7 +104,7 @@ if __name__ == "__main__":
         #zip the x and y coordinates into a tuple
         for xy in zip(i.x, i.y):
             coords.append(xy)
-            # plt.annotate(f'drone {index}', xy=xy)
+            plt.annotate(f'drone {index}', xy=xy)
 
     
     linesegments(coords)
