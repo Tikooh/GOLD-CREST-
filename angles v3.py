@@ -3,6 +3,7 @@ import matplotlib
 import numpy as np
 import torch
 import cv2
+import os
 
 class drone:
     def __init__(self, x, y):
@@ -38,6 +39,16 @@ def ang3Points(coords):
 
         print(f"Angle: {angle}")
 
+def draw(imagepath,coords): #imagepath is currently just the image name : will need to change this a bit if saving in another folder
+    image = cv2.imread(imagepath)
+    try:
+        startpoint,endpoint = (round(coords['xmin'][0]),round(coords['ymax'][0])),(round(coords['xmax'][0]),round(coords['ymin'][0]))
+        path = '/home/george/Documents/Drone angle/images'
+        image = cv2.rectangle(image,startpoint,endpoint,(255,0,0),20)
+        cv2.imwrite(os.path.join(path, imagepath),image)
+    except:
+        print("Error")
+
 def BBmodel(model):
     # Inference
     im = cv2.VideoCapture("VID_20230713_151704.mp4")
@@ -47,24 +58,27 @@ def BBmodel(model):
     while True:
                     # reading from frame
             ret,frame = im.read()
+            # print(f"ret output: {ret}, frame output: {frame}")
 
             if ret:
                 results = model(frame)
                 # Results
                 results.print()  # or .show(), .save(), .crop(), .pandas(), etc.
-
                 try:
                     
                     for i in range(len(results)):
                         results.xyxy[i]  # im predictions (tensor)
                         initialCoords = results.pandas().xyxy[i]  # im predictions (pandas)
-
+                        
                         x_centre = np.array([(initialCoords['xmin'][0] + initialCoords['xmax'][0]) / 2])
                         y_centre = np.array([(initialCoords['ymin'][0] + initialCoords['ymax'][0]) / 2])
 
                         locationList.append(drone(x_centre, y_centre))
                 except:
                     print("Error")
+                    
+                cv2.imwrite(f"image{currentframe}.png",frame) #creates the image
+                draw(f"image{currentframe}.png",initialCoords) #draws the box
                 currentframe += 1
             else:
                 break
@@ -90,7 +104,7 @@ if __name__ == "__main__":
         #zip the x and y coordinates into a tuple
         for xy in zip(i.x, i.y):
             coords.append(xy)
-            # plt.annotate(f'drone {index}', xy=xy)
+            plt.annotate(f'drone {index}', xy=xy)
 
     
     linesegments(coords)
