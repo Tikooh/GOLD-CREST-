@@ -71,9 +71,10 @@ def BBmodel(model):
                         locationList.append(drone(x_centre, y_centre))
                 except:
                     print("Error")
-                currentframe += 1
+                    
                 cv2.imwrite(f"image{currentframe}.png",frame) #creates the image
                 draw(f"image{currentframe}.png",initialCoords) #draws the box
+                currentframe += 1
             else:
                 break
 
