@@ -6,9 +6,9 @@ import cv2
 import os
 
 class drone:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
+    def __init__(self, initialCoords: np.array) -> None:
+        self.x = np.array([(initialCoords['xmin'][0] + initialCoords['xmax'][0]) / 2])
+        self.y = np.array([(initialCoords['ymin'][0] + initialCoords['ymax'][0]) / 2])
 
 def linesegments(coords):
     for i in range(len(coords)):
