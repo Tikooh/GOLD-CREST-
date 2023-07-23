@@ -69,11 +69,7 @@ def BBmodel(model):
                     for i in range(len(results)):
                         results.xyxy[i]  # im predictions (tensor)
                         initialCoords = results.pandas().xyxy[i]  # im predictions (pandas)
-                        
-                        x_centre = np.array([(initialCoords['xmin'][0] + initialCoords['xmax'][0]) / 2])
-                        y_centre = np.array([(initialCoords['ymin'][0] + initialCoords['ymax'][0]) / 2])
-
-                        locationList.append(drone(x_centre, y_centre))
+                        locationList.append(drone(initialCoords))
                 except:
                     print("Error")
                     
