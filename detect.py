@@ -123,12 +123,14 @@ class Detector:
         Tests input source by rendening frames for specified time
         Timeout : time to render frames in seconds, int or float
         '''
+        self.logger.info("Testing input source for {} seconds".format(timeout))
         start = time.time()
         while time.time() - start < timeout:
             image = self.getNextFrame()
             cv2.imshow("image", image)
             cv2.waitKey(1)
         cv2.destroyAllWindows()
+        self.logger.info("Test complete, windows closed")
 
     def destroy(self) -> None:
         '''
@@ -137,6 +139,7 @@ class Detector:
         '''
         self.video.release()
         cv2.destroyAllWindows()
+        self.logger.warning("Input source closed, class destroyed")
 
             
         
