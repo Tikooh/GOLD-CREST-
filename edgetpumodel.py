@@ -1,8 +1,3 @@
-'''
-Created by jveitchmichaelis
-Modified by Tikooh, from https://github.com/jveitchmichaelis/edgetpu-yolo/blob/main/edgetpumodel.py
-'''
-
 import time
 import os
 import sys
@@ -23,7 +18,7 @@ logger = logging.getLogger("EdgeTPUModel")
 
 class EdgeTPUModel:
 
-    def __init__(self, model_file, names_file, conf_thresh=0.25, iou_thresh=0.45, filter_classes=None, agnostic_nms=False, max_det=1000):
+    def __init__(self, model_file, names_file, conf_thresh=0.50, iou_thresh=0.45, filter_classes=None, agnostic_nms=False, max_det=1000):
         """
         Creates an object for running a Yolov5 model on an EdgeTPU
         
@@ -228,7 +223,7 @@ class EdgeTPUModel:
         
         return np.array(out).astype(int)
 
-    def process_predictions(self, det, output_image, pad, output_path="detection.jpg", save_img=True, save_txt=True, hide_labels=False, hide_conf=False):
+    def process_predictions(self, det, output_image, pad, output_path="detection.jpg", save_img=False, draw_img=False, save_txt=False, hide_labels=False, hide_conf=False):
         """
         Process predictions and optionally output an image with annotations
         """
@@ -254,7 +249,7 @@ class EdgeTPUModel:
             
             # Write results
             for *xyxy, conf, cls in reversed(det):
-                if save_img:  # Add bbox to image
+                if save_img or draw_img:  # Add bbox to image
                     c = int(cls)  # integer class
                     label = None if hide_labels else (self.names[c] if hide_conf else f'{self.names[c]} {conf:.2f}')
                     output_image = plot_one_box(xyxy, output_image, label=label, color=self.colors(c, True))
@@ -271,5 +266,8 @@ class EdgeTPUModel:
                    json.dump(output, f, indent=1)
             if save_img:
               cv2.imwrite(output_path, output_image)
+            if draw_img:
+                cv2.imshow("image", output_image)
+                cv2.waitKey(1)
             
         return det
