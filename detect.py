@@ -99,7 +99,7 @@ class Detector:
         times = self.model.get_last_inference_time()
         return sum(times)
     
-    def detectFrame(self, frame, draw_img=False, save_img=False, save_txt=False, save_path=None, 
+    def detectFrame(self, frame, draw_img=False, save_img=False, save_txt=False, output_path="detection.jpg", 
                     hide_labels=False, hide_conf=False) -> list[list[float, float, float, float, float]]:
         '''
         Detects objects in a frame, returns list of [top left x, top left y, bottom right x, bottom right y, confidence]
@@ -114,7 +114,7 @@ class Detector:
         full_image, net_image, pad = get_image_tensor(frame, self.model.get_image_size()[0])
         pred = self.model.forward(net_image)
         det = self.model.process_predictions(pred[0], full_image, pad, draw_img=draw_img, 
-                                             save_img=save_img, save_txt=save_txt, save_path=save_path, 
+                                             save_img=save_img, save_txt=save_txt, output_path=output_path, 
                                              hide_labels=hide_labels, hide_conf=hide_conf)
         return det
     
