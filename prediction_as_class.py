@@ -10,8 +10,8 @@ class drone:
 
 class Prediction:
     def __init__(self) -> None:
-        self.xlist = self.read_list("xlist")
-        self.ylist = self.read_list("ylist")
+        self.xlist = list(filter(lambda x: x>0, self.read_list("xlist")))
+        self.ylist = list(filter(lambda x: x>0, self.read_list("ylist")))
         self.tlist = self.read_list("tlist")
         self.DIST = 100
 
