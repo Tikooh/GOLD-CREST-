@@ -4,16 +4,25 @@ import pickle
 WRITE = False
 class drone:
     def __init__(self, x: float, y: float, time: float) -> None:
-        self.x = x
-        self.y = y
+        self._coords = np.array([x, y])
         self.time = time
+    
+    @property
+    def coords(self) -> np.ndarray:
+        return self._coords
+    @coords.setter
+    def coords(self, value) -> None:
+        try:
+            type(value) == tuple
+            self._coords = np.array(value)
+        except:
+            raise TypeError("Incorrect type: Must be Tuple")
 
 class Prediction:
     def __init__(self) -> None:
         self.xlist = list(filter(lambda x: x>0, self.read_list("xlist")))
         self.ylist = list(filter(lambda x: x>0, self.read_list("ylist")))
         self.tlist = self.read_list("tlist")
-        self.DIST = 100
 
     @staticmethod
     def read_list(name) -> list:
@@ -23,13 +32,27 @@ class Prediction:
     
     def getLocationList(self) -> list:
         return [drone(self.xlist[i],self.ylist[i],self.tlist[i]) for i in range(len(self.xlist))]
+
     
     def predict(self, drone1: object, drone2, drone3, reqtime: float) -> np.ndarray:
+
+        DIST = 50
         ttime = drone3.time-drone1.time
-        v1,v2,v3 = np.array([drone1.x,drone1.y]),np.array([drone2.x,drone2.y]),np.array([drone3.x,drone3.y])
-        if (v2-v1)[0]**2 + (v2-v1)[1]**2 <= self.DIST**2 and (v3-v2)[0]**2 + (v3-v2)[1]**2 <= self.DIST**2:
-            vf = (v2-v1)*(drone2.time-drone1.time)/ttime+(v3-v2)*(drone3.time-drone2.time)/ttime
-            final = list(vf*reqtime + v3)
+
+        distD1_D2 = drone2.coords - drone1.coords
+        timeD1_D2 = drone2.time - drone1.time
+
+        distD2_D3 = drone3.coords - drone2.coords
+        timeD2_D3 = drone3.time - drone2.time
+
+           #x                y                              x                 
+        if distD1_D2[0]**2 + distD1_D2[1]**2 <= DIST**2 and distD2_D3[0]**2 + distD2_D3[1]**2 <= DIST**2:
+
+            vf = distD1_D2*timeD1_D2/ttime+distD2_D3*timeD2_D3/ttime
+
+            final = list(vf*reqtime + drone3.coords)
+            
+            # final[0] returns x coordinate, final[1] returns y
             return final[0],final[1],drone3.time+reqtime
         else:
             return None,None,None
@@ -69,6 +92,7 @@ class Prediction:
 if __name__ == "__main__":
     predictor = Prediction()
     locationList = predictor.getLocationList()
+    # x = predictor.predict(locationList[150], locationList[151], locationList[152], 1)
     predX, predY, predT = predictor.getPredictions(locationList)
     predictor.plotGraph(predX, predY, predT)
     plt.show()
