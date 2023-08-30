@@ -40,7 +40,6 @@ class Prediction:
     def read_list(name) -> list:
         with open(f'{name}', 'rb') as fp:
             n_list = pickle.load(fp)
-            print(n_list)
             return n_list
     
     def getLocationList(self) -> list:
