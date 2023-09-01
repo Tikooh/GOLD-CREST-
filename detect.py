@@ -56,6 +56,8 @@ class Detector:
             self.logger.critical("No video or stream specified")
             raise IOError("No video or stream specified")
 
+        self.last_time = None
+
     def benchSpeed(self, iterations : int = 100) -> None:
         '''
         Benchmarks the speed of the model
@@ -85,11 +87,12 @@ class Detector:
         fps = 1.0/total_times.mean()
         self.logger.info("Mean FPS: {:1.2f}".format(fps))
 
-    def getNextFrame(self) -> np.ndarray:
+    def getNextFrame(self, save_time = True) -> np.ndarray:
         '''
         Returns next frame from input source
         '''
         res, image = self.video.read()
+        self.last_time = time.time()
         return cv2.rotate(image, cv2.ROTATE_180)
     
     def getLastProcessingTime(self) -> float:
