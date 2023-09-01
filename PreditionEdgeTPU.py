@@ -1,12 +1,10 @@
 from edgetpumodel import EdgeTPUModel
-from prediction import predictor
-from prediction import drone
+from prediction import Prediction, drone
 from utils import get_image_tensor
 import threading
 import concurrent.futures
 import RPi.GPIO as GPIO
 from RpiMotorLib import RpiMotorLib
-from Controller import increase_speed, decrease_speed, rotate
 
 import cv2
 import yaml
@@ -14,7 +12,19 @@ import os
 import sys
 import time
 import pandas
+import math
 import numpy as np
+
+def rotate(speed):# True=Clockwise, False=Counter-Clockwise, axis=0 for y, 1 for x
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        if LEFT:
+            executor.submit(motors[1].motor_go, False, SPEEDS[speed] , 2, .0005, False)
+        elif RIGHT:
+            executor.submit(motors[1].motor_go, True, SPEEDS[speed] , 2, .0005, False)
+        if UP:
+            executor.submit(motors[0].motor_go, False, SPEEDS[speed] , 2, .0005, False)
+        elif DOWN:
+            executor.submit(motors[0].motor_go, True, SPEEDS[speed] , 2, .0005, False)
 
 if __name__ == "__main__":
 
@@ -31,14 +41,14 @@ if __name__ == "__main__":
     GPIO.output(en[1],GPIO.LOW)
 
     LEFT, RIGHT, UP, DOWN = False, False, False, False
-    SPEED = 4
     SPEEDS = ["Full", "Half", "1/4", "1/8", "1/16", "1/32"]
 
     model = EdgeTPUModel()
-    location_pred = predictor([],[],[])
+    location_pred = Prediction()
     input_size = model.get_image_size()
     
     cam = cv2.VideoCapture(0)
+    #cam.set(cv2.CAP_PROP_FPS, 30)
     currentFrame = 0
     while True:
         
@@ -49,39 +59,60 @@ if __name__ == "__main__":
                 break
 
             else:
-                tlist, xlist, ylist = [],[],[]
+                full_image, net_image, pad = get_image_tensor(image, input_size[0])
+                pred = model.forward(net_image)
 
-                if len(tlist) <= 2:
+                result = model.process_predictions(pred[0], full_image, pad)
 
-                    full_image, net_image, pad = get_image_tensor(image, input_size[0])
-                    pred = model.forward(net_image)
+                tinference, tnms = model.get_last_inference_time()
 
-                    result = model.process_predictions(pred[0], full_image, pad)
+                result = result.pandas()
+                x_centre = np.array([(result['xmin'][0] + result['xmax'][0]) / 2])
+                y_centre = np.array([(result['ymin'][0] + result['ymax'][0]) / 2])
 
-                    tinference, tnms = model.get_last_inference_time()
-
-                    result = result.pandas()
-                    x_centre = np.array([(result['xmin'][0] + result['xmax'][0]) / 2])
-                    y_centre = np.array([(result['ymin'][0] + result['ymax'][0]) / 2])
-
-                    predictor.tlist.append(currentFrame)
-                    predictor.xlist.append(x_centre)
-                    predictor.ylist.append(y_centre)
-                    currentFrame += 1
-
-                    if x_centre
-
-                    rotate()
+                location_pred.tlist.append(currentFrame)
+                location_pred.xlist.append(x_centre)
+                location_pred.ylist.append(y_centre)
+                currentFrame += 1
                 
-                else:
+                if len(location_pred.tlist) >= 3:
                     #TODO add motor controls
-                    locationList = predictor.getLocationList(xlist, ylist, tlist)
-                    predX, predY, predT = predictor.getPredictions(locationList)
-                    predictor.tlist = predictor.tlist[:-1]
-                    predictor.xlist = predictor.xlist[:-1]
-                    predictor.ylist = predictor.ylist[:-1]
+                    locationList = location_pred.getLocationList(location_pred.xlist, location_pred.ylist, location_pred.tlist)
+                    predX, predY, predT = location_pred.getPredictions(locationList) #each returns a list of size 1
+                    location_pred.tlist = location_pred.tlist[-3:]
+                    location_pred.xlist = location_pred.xlist[-3:]
+                    location_pred.ylist = location_pred.ylist[-3:]
 
-                    rotate()
+                    if (image.shape[2]/2)-predX[0] != 0 and (image.shape[1]/2)-predY[0] != 0:
+                        speedX = math.floor(6*(1-(abs((image.shape[2]/2)-predX[0])/image.shape[2]/2)))
+                        speedY = math.floor(6*(1-(abs((image.shape[1]/2)-predY[0])/image.shape[1]/2)))
+
+                    if predX[0] < image.shape[2]/2:
+                        LEFT = True
+                        RIGHT = False
+                        DOWN = False
+                        UP = False
+                        rotate(speedX)
+                    else:
+                        LEFT = False
+                        RIGHT = True
+                        DOWN = False
+                        UP = False
+                        rotate(speedX)
+
+                    if predY[0] < image.shape[1]/2:
+                        LEFT = False
+                        RIGHT = False
+                        DOWN = False
+                        UP = True
+                        rotate(speedY)
+                    else:
+                        LEFT = False
+                        RIGHT = False
+                        DOWN = True
+                        UP = False
+                        rotate(speedY)
+                        
         except KeyboardInterrupt:
             break
 
