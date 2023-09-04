@@ -11,12 +11,11 @@ import numpy as np
 from tqdm import tqdm
 import cv2
 
-from edgetpumodel import EdgeTPUModel
-from utils import get_image_tensor
+
 
 class Detector:
     def __init__(self, model: str, names : str, conf_thresh : float = 0.50, iou_thresh : float = 0.45, quiet: bool = False, 
-                 device : int = 0, stream : bool = True, video : str= None) -> None:
+                 device : int = 0, stream : bool = True, video : str= None, edge : bool = True) -> None:
         '''
         Detector class for running a Yolov5 model on an EdgeTPU
         Model : path to edgetpu-compiled tflite file
@@ -34,10 +33,23 @@ class Detector:
             logging.disable(logging.CRITICAL)
             self.logger.disabled = True
         
-        self.model = EdgeTPUModel(model, names, conf_thresh=conf_thresh, iou_thresh=iou_thresh)
-        self.input_size = self.model.get_image_size()
-        x = (255*np.random.random((3,*self.input_size))).astype(np.uint8)
-        self.model.forward(x)
+        self.edge = edge
+        if edge:
+            from edgetpumodel import EdgeTPUModel
+            from utils import get_image_tensor
+            self.model = EdgeTPUModel(model, names, conf_thresh=conf_thresh, iou_thresh=iou_thresh)
+            self.input_size = self.model.get_image_size()
+            x = (255*np.random.random((3,*self.input_size))).astype(np.uint8)
+            self.model.forward(x)
+        else:
+            import torch
+            self.model = torch.hub.load('ultralytics/yolov5', 'custom', path=model, force_reload=True)
+            self.model.iou = iou_thresh
+            self.model.conf = conf_thresh
+            self.input_size = 640, 640
+            x = (255*np.random.random((3,*self.input_size))).astype(np.uint8)
+            self.model.forward(x)
+            #print(dir(self.model))
 
         if stream and video is not None:
             self.logger.warning("Both stream and video specified, defaulting to video")
@@ -87,13 +99,13 @@ class Detector:
         fps = 1.0/total_times.mean()
         self.logger.info("Mean FPS: {:1.2f}".format(fps))
 
-    def getNextFrame(self, save_time = True) -> np.ndarray:
+    def getNextFrame(self) -> np.ndarray:
         '''
         Returns next frame from input source
         '''
         res, image = self.video.read()
         self.last_time = time.time()
-        return cv2.rotate(image, cv2.ROTATE_180)
+        return image
     
     def getLastProcessingTime(self) -> float:
         '''
@@ -114,12 +126,18 @@ class Detector:
         Hide_labels : hide labels on drawn image, bool
         Hide_conf : hide confidence on drawn image, bool
         '''
-        full_image, net_image, pad = get_image_tensor(frame, self.model.get_image_size()[0])
-        pred = self.model.forward(net_image)
-        det = self.model.process_predictions(pred[0], full_image, pad, draw_img=draw_img, 
+        if self.edge:
+            full_image, net_image, pad = get_image_tensor(frame, self.model.get_image_size()[0])
+            pred = self.model.forward(net_image)
+            det = self.model.process_predictions(pred[0], full_image, pad, draw_img=draw_img, 
                                              save_img=save_img, save_txt=save_txt, output_path=output_path, 
                                              hide_labels=hide_labels, hide_conf=hide_conf)
-        return det
+            return det
+        else:
+            results = self.model(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), size=self.input_size)
+            if draw_img:
+                results.show()
+            return results
     
     def test_input(self, timeout: float = 30) -> None:
         '''
