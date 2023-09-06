@@ -32,9 +32,9 @@ class Prediction:
     Class for running the actual prediction. Requires files of x, y coordinates of drones and the time at which they appear.
     '''
     def __init__(self) -> None:
-        self.xlist = list(filter(lambda x: x>0, self.read_list("xlist")))
-        self.ylist = list(filter(lambda x: x>0, self.read_list("ylist")))
-        self.tlist = self.read_list("tlist")
+        self.xlist = []
+        self.ylist = []
+        self.tlist = []
 
     @staticmethod
     def read_list(name) -> list:
